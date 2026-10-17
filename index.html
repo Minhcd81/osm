@@ -22,7 +22,7 @@
       top: 10px;
       left: 60px;
       background-color: rgba(0, 125, 120, 0.9);
-      padding: 10px;
+      padding: 8px 10px;
       border-radius: 8px;
       color: white;
       z-index: 1000;
@@ -62,7 +62,14 @@
     .cong-tac span::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
     .cong-tac input:checked + span { background: #0b6b47; box-shadow: inset 0 0 0 1px #f2c94c; }
     .cong-tac input:checked + span::before { transform: translateX(18px); }
-    .dia-chi { margin-left: 48px; }
+    .diem { margin: 2px 0; }
+    .nhan { flex: 0 0 52px; font-weight: bold; font-size: 14px; line-height: 1.1; }
+    .kc { display: block; color: #f2c94c; font-size: 11px; font-weight: bold; }
+    .dong input { margin: 2px 0; padding: 5px 6px; }
+    .controls .nut-dc { padding: 4px 6px; background: #e9f5f4; }
+    .controls .nut-dc.bat { background: #f2c94c; }
+    .dia-chi { margin-left: 108px; }
+    .dia-chi[hidden] { display: none; }
     .dia-chi input { font-size: 13px; background: #e9f5f4; }
     .controls .dia-chi button, .controls .nut-nho { margin-top: 0; padding: 5px 8px; }
     .vn-dong { display: grid; grid-template-columns: 1fr 1fr 26px; gap: 6px; align-items: center; }
@@ -103,30 +110,22 @@
   <div class="controls" id="bang">
     <div class="tieu-de" data-thu="bang"><strong>Bảng TSBĐ &amp; TSSS</strong><span class="mui">▾</span></div>
     <div class="than-bang">
-    <div>
-      <strong>TSBĐ:</strong>
-      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsbd" checked /><span></span></label><input id="tsbd" value="" placeholder="Lat, Lng" /></div>
-      <div class="dong dia-chi"><input id="tsbd-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsbd" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
+    <div class="diem">
+      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsbd" checked /><span></span></label><span class="nhan">TSBĐ</span><input id="tsbd" value="" placeholder="Lat, Lng" /><button type="button" class="nut-nho nut-dc" data-dc="tsbd" title="Hiện/ẩn ô địa chỉ">📍</button></div>
+      <div class="dong dia-chi" id="tsbd-dong-dc" hidden><input id="tsbd-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsbd" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
     </div>
-    <div>
-      <strong>TSSS1:</strong>
-      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsss1" checked /><span></span></label><input id="tsss1" value="" placeholder="Lat, Lng" /></div>
-      <div class="dong dia-chi"><input id="tsss1-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsss1" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
-      <span id="dist-tsss1" style="margin-left: 48px; color: #f2c94c; font-weight: bold;"></span>
+    <div class="diem">
+      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsss1" checked /><span></span></label><span class="nhan">TSSS1<small id="dist-tsss1" class="kc"></small></span><input id="tsss1" value="" placeholder="Lat, Lng" /><button type="button" class="nut-nho nut-dc" data-dc="tsss1" title="Hiện/ẩn ô địa chỉ">📍</button></div>
+      <div class="dong dia-chi" id="tsss1-dong-dc" hidden><input id="tsss1-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsss1" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
     </div>
-    <div>
-      <strong>TSSS2:</strong>
-      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsss2" checked /><span></span></label><input id="tsss2" value="" placeholder="Lat, Lng" /></div>
-      <div class="dong dia-chi"><input id="tsss2-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsss2" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
-      <span id="dist-tsss2" style="margin-left: 48px; color: #f2c94c; font-weight: bold;"></span>
+    <div class="diem">
+      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsss2" checked /><span></span></label><span class="nhan">TSSS2<small id="dist-tsss2" class="kc"></small></span><input id="tsss2" value="" placeholder="Lat, Lng" /><button type="button" class="nut-nho nut-dc" data-dc="tsss2" title="Hiện/ẩn ô địa chỉ">📍</button></div>
+      <div class="dong dia-chi" id="tsss2-dong-dc" hidden><input id="tsss2-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsss2" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
     </div>
-    <div>
-      <strong>TSSS3:</strong>
-      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsss3" checked /><span></span></label><input id="tsss3" value="" placeholder="Lat, Lng" /></div>
-      <div class="dong dia-chi"><input id="tsss3-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsss3" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
-      <span id="dist-tsss3" style="margin-left: 48px; color: #f2c94c; font-weight: bold;"></span>
+    <div class="diem">
+      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsss3" checked /><span></span></label><span class="nhan">TSSS3<small id="dist-tsss3" class="kc"></small></span><input id="tsss3" value="" placeholder="Lat, Lng" /><button type="button" class="nut-nho nut-dc" data-dc="tsss3" title="Hiện/ẩn ô địa chỉ">📍</button></div>
+      <div class="dong dia-chi" id="tsss3-dong-dc" hidden><input id="tsss3-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsss3" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
     </div>
-
     <div class="muc" id="muc-tien-ich" style="margin-top:8px;">
       <div class="tieu-de" data-thu="muc-tien-ich"><strong>Tiện ích:</strong><span class="mui">▾</span></div>
       <div class="noi-dung">
@@ -291,7 +290,7 @@
       handleTSSS('tsss2','TSSS 2');
       handleTSSS('tsss3','TSSS 3');
       if (positions.length > 0) { map.fitBounds(positions); }
-      (async () => { for (const k of ['tsbd', 'tsss1', 'tsss2', 'tsss3']) await capNhatDiaChi(k); })();
+      (async () => { for (const k of ['tsbd', 'tsss1', 'tsss2', 'tsss3']) if (!document.getElementById(k + '-dong-dc').hidden) await capNhatDiaChi(k); })();
     }
 
     // VN-2000 (múi chiếu 3°, k0 = 0,9999) sang WGS84 (tọa độ Google). Tham số 7 phép Helmert theo EPSG "VN-2000 to WGS 84 (2)",
@@ -355,7 +354,7 @@
     document.getElementById('vn-truc').addEventListener('change', e => {
       document.getElementById('vn-truc-khac').style.display = e.target.value === 'khac' ? '' : 'none';
     });
-    for (let i = 0; i < 3; i++) themDongVn();
+    themDongVn();
 
     // Địa chỉ <-> tọa độ, miễn phí, không cần API key: Photon (komoot, dữ liệu OSM), dự phòng Nominatim.
     // Dữ liệu OSM ở Việt Nam hầu như chưa có số nhà, nên kết quả chính xác tới tên đường + phường.
@@ -460,7 +459,21 @@
     document.querySelectorAll('[data-tim]').forEach(b => b.onclick = () => timTheoDiaChi(b.dataset.tim));
     ['tsbd', 'tsss1', 'tsss2', 'tsss3'].forEach(k => {
       document.getElementById(k + '-dc').addEventListener('keydown', e => { if (e.key === 'Enter') timTheoDiaChi(k); });
-      document.getElementById(k).addEventListener('change', () => capNhatDiaChi(k));
+      // Gõ/dán tọa độ là bản đồ tự cập nhật (trước đây phải bấm Cập nhật nên dễ tưởng là hỏng).
+      const o = document.getElementById(k);
+      o.addEventListener('change', () => updateMarkers());
+      o.addEventListener('keydown', e => { if (e.key === 'Enter') o.blur(); });
+    });
+    // Ô địa chỉ mặc định ẩn cho gọn; bấm 📍 để hiện/ẩn từng ô, trang nhớ lựa chọn.
+    function hienDiaChi(k, hien) {
+      document.getElementById(k + '-dong-dc').hidden = !hien;
+      document.querySelector(`[data-dc="${k}"]`).classList.toggle('bat', hien);
+      if (hien) capNhatDiaChi(k);
+    }
+    document.querySelectorAll('[data-dc]').forEach(b => {
+      const k = b.dataset.dc;
+      hienDiaChi(k, nho('dc-' + k) === '1');
+      b.onclick = () => { const hien = document.getElementById(k + '-dong-dc').hidden; nho('dc-' + k, hien ? '1' : '0'); hienDiaChi(k, hien); };
     });
 
     function takeScreenshot() {

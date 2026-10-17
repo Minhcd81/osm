@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bản đồ TSBĐ &amp; TSSS - BIDV</title>
+  <!-- Leaflet styles -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <!-- Screenshoter styles -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/leaflet-simple-map-screenshoter@0.5.0/dist/leaflet-simple-map-screenshoter.css"
+  />
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #map { width: 100vw; height: 100vh; }
+    .controls {
+      position: absolute;
+      top: 10px;
+      left: 60px;
+      background-color: rgba(0, 125, 120, 0.9);
+      padding: 10px;
+      border-radius: 8px;
+      color: white;
+      z-index: 1000;
+      width: 380px;
+      box-sizing: border-box;
+    }
+    .controls input {
+      margin: 4px 0;
+      padding: 6px;
+      border-radius: 4px;
+      border: none;
+      width: 100%;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .controls button {
+      background-color: #f2c94c;
+      color: black;
+      border: none;
+      padding: 6px 12px;
+      margin-top: 8px;
+      margin-right: 5px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .label-icon { display: flex; flex-direction: column; align-items: center; }
+    .label-box {
+      background-color: #007d78;
+      color: #f2c94c;
+      font-weight: bold;
+      padding: 6px 10px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: 2px solid #007d78;
+      white-space: nowrap;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
+    .label-box::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 10px solid #007d78;
+    }
+    .label-img { width: 35px; height: 35px; margin-top: 4px; }
+    .tsbd-img { width: 40px; height: 40px; }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <div>
+      <strong>TSBĐ:</strong><br />
+      <input id="tsbd" value="" placeholder="Lat, Lng" />
+    </div>
+    <div>
+      <strong>TSSS1:</strong><br />
+      <input id="tsss1" value="" placeholder="Lat, Lng" />
+      <span style="margin-left: 4px; color: #f2c94c;"></span>
+      <span id="dist-tsss1" style="margin-left: 2px; color: #f2c94c; font-weight: bold;"></span>
+    </div>
+    <div>
+      <strong>TSSS2:</strong><br />
+      <input id="tsss2" value="" placeholder="Lat, Lng" />
+      <span style="margin-left: 4px; color: #f2c94c;"></span>
+      <span id="dist-tsss2" style="margin-left: 2px; color: #f2c94c; font-weight: bold;"></span>
+    </div>
+    <div>
+      <strong>TSSS3:</strong><br />
+      <input id="tsss3" value="" placeholder="Lat, Lng" />
+      <span style="margin-left: 4px; color: #f2c94c;"></span>
+      <span id="dist-tsss3" style="margin-left: 2px; color: #f2c94c; font-weight: bold;"></span>
+    </div>
+
+    <div style="margin-top:8px;">
+      <strong>Tiện ích:</strong><br />
+      <input id="amenity-school" value="Trường" readonly /><br />
+      <input id="amenity-hospital" value="Bệnh viện" readonly /><br />
+      <input id="amenity-bus_station" value="Bến xe" readonly /><br />
+      <input id="amenity-market" value="Chợ/Cửa hàng" readonly /><br />
+      <input id="amenity-other" value="Khác" readonly />
+    </div>
+
+    <div style="margin-top:8px;">
+      <strong>Bán kính tìm kiếm (km):</strong><br />
+      <button id="radius-decrease" type="button">-</button>
+      <span id="radius-display">1</span> km
+      <button id="radius-increase" type="button">+</button>
+    </div>
+
+    <div id="amenities-info" style="margin-top: 8px; color: #f2c94c;"></div>
+    <div style="text-align: center">
+      <button onclick="updateMarkers()">Cập nhật</button>
+      <button onclick="takeScreenshot()">Chụp ảnh</button>
+      <button onclick="searchAmenities()">Kiểm tra tiện ích</button>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-simple-map-screenshoter@0.5.0/dist/leaflet-simple-map-screenshoter.min.js"></script>
+
+  <script>
+    const defaultCenter = [21.02971, 105.85712];
+    const map = L.map('map').setView(defaultCenter, 17);
+
+    // Nền bản đồ dữ liệu OpenStreetMap, không cần API key, không dùng Google Maps.
+    // tile.openstreetmap.org bị chặn ở một số mạng Việt Nam (nguyên nhân mất nền bản đồ bản cũ),
+    // nên mặc định dùng máy chủ cộng đồng OSM France; lỗi nhiều ô thì tự chuyển sang OSM Humanitarian (HOT), rồi OSM gốc.
+    const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    const nenOsmFr = L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+      subdomains: 'abc', maxZoom: 20, crossOrigin: true, attribution: OSM_ATTR + ' · nền OSM France'
+    });
+    const nenHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      subdomains: 'abc', maxZoom: 19, crossOrigin: true, attribution: OSM_ATTR + ' · nền Humanitarian (HOT)'
+    });
+    const nenOsm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, crossOrigin: true, attribution: OSM_ATTR
+    });
+    const nenVeTinh = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19, crossOrigin: true, attribution: 'Ảnh vệ tinh &copy; Esri'
+    });
+    const chuoiNen = [nenOsmFr, nenHot, nenOsm];
+    function dungNen(i) {
+      chuoiNen.forEach(l => map.hasLayer(l) && map.removeLayer(l));
+      const nen = chuoiNen[i]; let loi = 0;
+      nen.off('tileerror').on('tileerror', () => { if (++loi === 6 && i + 1 < chuoiNen.length) dungNen(i + 1); });
+      nen.addTo(map);
+    }
+    dungNen(0);
+    L.control.layers({ 'OSM France (mặc định)': nenOsmFr, 'OSM Humanitarian': nenHot, 'OpenStreetMap gốc': nenOsm, 'Ảnh vệ tinh': nenVeTinh }, null, { position: 'bottomright' }).addTo(map);
+
+    const markers = {};
+
+    const screenshoter = L.simpleMapScreenshoter({
+      hideElementsWithSelectors: ['.leaflet-control-container', '.controls'],
+      preventDownload: true,
+      position: 'topright',
+    }).addTo(map);
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      function toRad(deg) { return (deg * Math.PI) / 180; }
+      const R = 6371;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return Number((R * c).toFixed(2));
+    }
+
+    function createMarker(id, lat, lng, labelText, imageUrl, isTSBD = false) {
+      if (markers[id]) { map.removeLayer(markers[id]); }
+      const iconHtml = `
+        <div class="label-icon">
+          <div class="label-box">${labelText}</div>
+          <img src="${imageUrl}" class="${isTSBD ? 'tsbd-img' : 'label-img'}" />
+        </div>
+      `;
+      const icon = L.divIcon({ className:'', html: iconHtml, iconAnchor:[20,50] });
+      markers[id] = L.marker([lat, lng], { icon }).addTo(map);
+    }
+
+    function updateMarkers() {
+      const inputs = {
+        tsbd: document.getElementById('tsbd').value,
+        tsss1: document.getElementById('tsss1').value,
+        tsss2: document.getElementById('tsss2').value,
+        tsss3: document.getElementById('tsss3').value,
+      };
+      let tsbdLat = null, tsbdLng = null;
+      const positions = [];
+      if (inputs.tsbd) {
+        const [lat, lng] = inputs.tsbd.split(',').map(Number);
+        tsbdLat = lat; tsbdLng = lng;
+        createMarker('tsbd', lat, lng, 'TSBĐ', 'Bieu-Tuong-Logo-Ngan-Hang-BIDV.png', true);
+        positions.push([lat, lng]);
+      }
+      function handleTSSS(id, label) {
+        if (inputs[id]) {
+          const [lat, lng] = inputs[id].split(',').map(Number);
+          createMarker(id, lat, lng, label, 'pngtree-circular-world-flag-vietnam-icon-png-image_4830539.png');
+          positions.push([lat, lng]);
+          if (tsbdLat !== null) {
+            const dist = calculateDistance(tsbdLat, tsbdLng, lat, lng);
+            document.getElementById(`dist-${id}`).innerText = `${dist} km`;
+          }
+        } else {
+          document.getElementById(`dist-${id}`).innerText = '';
+        }
+      }
+      handleTSSS('tsss1','TSSS 1');
+      handleTSSS('tsss2','TSSS 2');
+      handleTSSS('tsss3','TSSS 3');
+      if (positions.length > 0) { map.fitBounds(positions); }
+    }
+
+    function takeScreenshot() {
+      const [lat, lng] = document.getElementById('tsbd').value.split(',').map(x => x.trim());
+      const filename = `TSBD_${lat},${lng}.png`;
+      setTimeout(() => {
+        screenshoter.takeScreen('blob').then(blob => {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+      }, 800);
+    }
+
+    // Các loại tiện ích chính
+    const amenityTypes = [
+      {
+        id: 'school',
+        label: 'Trường',
+        queries: [
+          { key: 'amenity', value: 'school' },
+          { key: 'amenity', value: 'college' },
+          { key: 'amenity', value: 'university' }
+        ],
+        nameFilter: /(trường|thcs|tiểu học|thpt|cao đẳng|đại học)/i,
+        nameExclude: /(anh ngữ|ngoại ngữ|tiếng anh|tiếng trung|language|center|trung tâm)/i
+      },
+      {
+        id: 'hospital',
+        label: 'Bệnh viện',
+        queries: [{ key: 'amenity', value: 'hospital' }]
+      },
+      {
+        id: 'bus_station',
+        label: 'Bến xe',
+        queries: [{ key: 'amenity', value: 'bus_station' }],
+        nameFilter: /bến\s*xe|bus\s*station/i
+      },
+      {
+        id: 'market',
+        label: 'Chợ/Cửa hàng',
+        queries: [
+          { key: 'amenity', value: 'marketplace' },
+          { key: 'shop', value: 'convenience' },
+          { key: 'shop', value: 'supermarket' }
+        ]
+      }
+    ];
+
+    // Bán kính hiện tại (km), mặc định 1km
+    let currentRadiusKm = 1;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const radiusDisplay = document.getElementById('radius-display');
+      const radiusDecrease = document.getElementById('radius-decrease');
+      const radiusIncrease = document.getElementById('radius-increase');
+
+      if (radiusDisplay) radiusDisplay.innerText = currentRadiusKm;
+
+      if (radiusIncrease) {
+        radiusIncrease.addEventListener('click', () => {
+          currentRadiusKm += 1;
+          radiusDisplay.innerText = currentRadiusKm;
+        });
+      }
+      if (radiusDecrease) {
+        radiusDecrease.addEventListener('click', () => {
+          if (currentRadiusKm > 1) {
+            currentRadiusKm -= 1;
+            radiusDisplay.innerText = currentRadiusKm;
+          }
+        });
+      }
+    });
+
+    // Hàm chung: tìm gần nhất cho 1 tập queries (node + way + relation)
+    async function findNearestByQueries(lat, lon, queries, nameFilter, nameExclude) {
+      const radius = currentRadiusKm * 1000;
+      let query = '[out:json];(';
+      queries.forEach(({ key, value }) => {
+        query += `node(around:${radius},${lat},${lon})[${key}=${value}];`;
+        query += `way(around:${radius},${lat},${lon})[${key}=${value}];`;
+        query += `relation(around:${radius},${lat},${lon})[${key}=${value}];`;
+      });
+      query += ');out center;';
+
+      const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (!data.elements || data.elements.length === 0) return null;
+
+      let nearest = null;
+      let minDist = Infinity;
+
+      data.elements.forEach(elem => {
+        let eLat = null, eLon = null;
+
+        if (typeof elem.lat === 'number' && typeof elem.lon === 'number') {
+          eLat = elem.lat;
+          eLon = elem.lon;
+        } else if (
+          elem.center &&
+          typeof elem.center.lat === 'number' &&
+          typeof elem.center.lon === 'number'
+        ) {
+          eLat = elem.center.lat;
+          eLon = elem.center.lon;
+        } else {
+          return;
+        }
+
+        const name = (elem.tags && elem.tags.name) ? elem.tags.name : '';
+
+        if (nameFilter && !nameFilter.test(name)) return;
+        if (nameExclude && nameExclude.test(name)) return;
+
+        const d = calculateDistance(lat, lon, eLat, eLon);
+        if (d < minDist) {
+          minDist = d;
+          nearest = { lat: eLat, lon: eLon, dist: d, name };
+        }
+      });
+
+      return nearest;
+    }
+
+    async function findNearestAmenityForType(lat, lon, amenity) {
+      return findNearestByQueries(
+        lat,
+        lon,
+        amenity.queries,
+        amenity.nameFilter,
+        amenity.nameExclude
+      );
+    }
+
+    // Tìm tiện ích "Khác" theo thứ tự ưu tiên:
+    // Công viên -> Sân vận động -> UBND -> Công an -> Di tích lịch sử
+    async function searchOtherAmenity(lat, lon) {
+      const inputElem = document.getElementById('amenity-other');
+      if (!inputElem) return;
+
+      const categories = [
+        {
+          labelPrefix: 'Công viên',
+          queries: [{ key: 'leisure', value: 'park' }],
+          nameFilter: /(công viên|park)/i
+        },
+        {
+          labelPrefix: 'Sân vận động',
+          queries: [{ key: 'leisure', value: 'stadium' }],
+          nameFilter: /(sân vận động|stadium)/i
+        },
+        {
+          labelPrefix: 'Ủy ban nhân dân',
+          queries: [
+            { key: 'amenity', value: 'townhall' },
+            { key: 'office',  value: 'government' }
+          ],
+          nameFilter: /(ủy ban|uỷ ban|ubnd)/i
+        },
+        {
+          labelPrefix: 'Công an',
+          queries: [{ key: 'amenity', value: 'police' }],
+          nameFilter: /(công an|police)/i
+        },
+        {
+          labelPrefix: 'Di tích lịch sử',
+          queries: [
+            { key: 'historic', value: 'monument' },
+            { key: 'historic', value: 'memorial' },
+            { key: 'historic', value: 'castle' },
+            { key: 'historic', value: 'heritage' }
+          ]
+        }
+      ];
+
+      // Xoá marker cũ nếu có
+      if (markers['amenity-other']) {
+        map.removeLayer(markers['amenity-other']);
+        delete markers['amenity-other'];
+      }
+
+      for (const cat of categories) {
+        try {
+          const nearest = await findNearestByQueries(
+            lat,
+            lon,
+            cat.queries,
+            cat.nameFilter || null,
+            null
+          );
+          if (nearest) {
+            createMarker(
+              'amenity-other',
+              nearest.lat,
+              nearest.lon,
+              'Khác',
+              'pngtree-circular-world-flag-vietnam-icon-png-image_4830539.png'
+            );
+            const nameText = nearest.name && nearest.name.trim() !== '' ? nearest.name : '(không tên)';
+            inputElem.value = `Khác (${cat.labelPrefix}): ${nameText} (${nearest.dist} km)`;
+            return;
+          }
+        } catch (err) {
+          console.error('Error searching other amenity (', cat.labelPrefix, '): ', err);
+        }
+      }
+
+      inputElem.value = `Khác: Không tìm thấy trong phạm vi ${currentRadiusKm} km`;
+    }
+
+    async function searchAmenities() {
+      const tsbdValue = document.getElementById('tsbd').value;
+      if (!tsbdValue) {
+        alert('Vui lòng nhập tọa độ TSBĐ trước khi kiểm tra tiện ích.');
+        return;
+      }
+      const [lat, lon] = tsbdValue.split(',').map(Number);
+
+      const infoDiv = document.getElementById('amenities-info');
+      if (infoDiv) {
+        infoDiv.textContent = `Đang tìm tiện ích trong phạm vi ${currentRadiusKm} km...`;
+      }
+
+      // Xoá marker tiện ích cũ
+      amenityTypes.forEach(amenity => {
+        const markerKey = `amenity-${amenity.id}`;
+        if (markers[markerKey]) {
+          map.removeLayer(markers[markerKey]);
+          delete markers[markerKey];
+        }
+      });
+      if (markers['amenity-other']) {
+        map.removeLayer(markers['amenity-other']);
+        delete markers['amenity-other'];
+      }
+
+      // 4 tiện ích chính
+      for (const amenity of amenityTypes) {
+        try {
+          const nearest = await findNearestAmenityForType(lat, lon, amenity);
+          const inputElem = document.getElementById(`amenity-${amenity.id}`);
+
+          if (nearest) {
+            createMarker(
+              `amenity-${amenity.id}`,
+              nearest.lat,
+              nearest.lon,
+              amenity.label,
+              'pngtree-circular-world-flag-vietnam-icon-png-image_4830539.png'
+            );
+            const nameText = nearest.name && nearest.name.trim() !== '' ? nearest.name : '(không tên)';
+            if (inputElem) {
+              inputElem.value = `${amenity.label}: ${nameText} (${nearest.dist} km)`;
+            }
+          } else {
+            if (inputElem) {
+              inputElem.value = `${amenity.label}: Không tìm thấy trong phạm vi ${currentRadiusKm} km`;
+            }
+          }
+        } catch (err) {
+          console.error('Error searching amenity', amenity.id, err);
+          const inputElem = document.getElementById(`amenity-${amenity.id}`);
+          if (inputElem) {
+            inputElem.value = `${amenity.label}: Lỗi khi tìm kiếm`;
+          }
+        }
+      }
+
+      // Tiện ích "Khác"
+      await searchOtherAmenity(lat, lon);
+
+      if (infoDiv) {
+        infoDiv.textContent = `Đã kiểm tra tiện ích trong phạm vi ${currentRadiusKm} km.`;
+      }
+    }
+  </script>
+</body>
+</html>

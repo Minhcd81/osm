@@ -77,6 +77,14 @@
     .vn-kq { font-size: 13px; color: #f2c94c; margin: -2px 0 4px; }
     .vn-kq a { color: #fff; margin-left: 6px; cursor: pointer; text-decoration: underline; }
     .controls select { width: 100%; padding: 6px; border-radius: 4px; border: none; margin: 4px 0; }
+    .ho-so { margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.25); }
+    .ho-so input[type=range] { flex: 1; accent-color: #f2c94c; padding: 0; margin: 0; }
+    .hs-nhan { flex: 0 0 34px; text-align: right; font-weight: bold; color: #f2c94c; }
+    .hs-tt { font-size: 12px; opacity: .9; margin: 2px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hs-nut { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+    .controls .hs-nut button { margin: 0; padding: 5px 0; font-size: 13px; }
+    .hs-kem { display: block; font-size: 12px; margin-top: 4px; }
+    .hs-kem input { width: auto; margin: 0 4px 0 0; vertical-align: middle; }
     .label-icon { display: flex; flex-direction: column; align-items: center; }
     .label-box {
       background-color: #007d78;
@@ -160,6 +168,24 @@
       </div>
     </div>
 
+    <div class="ho-so">
+      <div class="dong">
+        <strong style="flex:0 0 auto">Hồ sơ</strong>
+        <button type="button" class="nut-nho" id="hs-lui" title="Hồ sơ trước">‹</button>
+        <input type="range" id="hs-so" min="1" max="100" value="1" />
+        <button type="button" class="nut-nho" id="hs-toi" title="Hồ sơ sau">›</button>
+        <span id="hs-nhan" class="hs-nhan">#1</span>
+      </div>
+      <div id="hs-tt" class="hs-tt">Trống</div>
+      <div class="hs-nut">
+        <button type="button" id="hs-luu">💾 Lưu</button>
+        <button type="button" id="hs-xoa">🗑 Xoá</button>
+        <button type="button" id="hs-csv">⬇ CSV</button>
+        <button type="button" id="hs-xlsx">⬇ Excel</button>
+      </div>
+      <label class="hs-kem"><input type="checkbox" id="hs-kem-ti" checked /> Kèm tiện ích khi xuất</label>
+    </div>
+
     <div style="text-align: center">
       <button onclick="updateMarkers()">Cập nhật</button>
       <button onclick="takeScreenshot()">Chụp ảnh</button>
@@ -172,6 +198,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet-simple-map-screenshoter@0.5.0/dist/leaflet-simple-map-screenshoter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 
   <script>
     const defaultCenter = [21.02971, 105.85712];
@@ -475,6 +502,86 @@
       hienDiaChi(k, nho('dc-' + k) === '1');
       b.onclick = () => { const hien = document.getElementById(k + '-dong-dc').hidden; nho('dc-' + k, hien ? '1' : '0'); hienDiaChi(k, hien); };
     });
+
+    // ---------- Hồ sơ 1–100: lưu TSBĐ/TSSS (+ tiện ích) trong trình duyệt, xuất CSV/Excel ----------
+    // Dữ liệu nằm trong localStorage của trình duyệt đang dùng (trang tĩnh, không có máy chủ); muốn mang sang máy khác thì xuất Excel.
+    const DIEM = [['tsbd', 'TSBĐ'], ['tsss1', 'TSSS1'], ['tsss2', 'TSSS2'], ['tsss3', 'TSSS3']];
+    const TI = [['school', 'Trường'], ['hospital', 'Bệnh viện'], ['bus_station', 'Bến xe'], ['market', 'Chợ/Cửa hàng'], ['other', 'Khác']];
+    const hsKhoa = n => 'ho-so-' + n;
+    const hsDoc = n => { try { return JSON.parse(nho(hsKhoa(n)) || 'null'); } catch (e) { return null; } };
+    const $id = id => document.getElementById(id);
+    function chupTrangThai() {
+      const r = { luc: new Date().toLocaleString('vi-VN'), banKinh: currentRadiusKm, diem: {}, tienIch: {} };
+      for (const [k] of DIEM) r.diem[k] = { toaDo: $id(k).value.trim(), diaChi: ($id(k + '-dc').value || '').replace(/^(Đang tra|Không tra).*$/, ''), kc: k === 'tsbd' ? '' : ($id('dist-' + k).innerText || '') };
+      for (const [k] of TI) {
+        const v = $id('amenity-' + k).value, m = markers['amenity-' + k];
+        if (v.includes(':')) r.tienIch[k] = { ketQua: v, toaDo: m ? `${m.getLatLng().lat.toFixed(6)}, ${m.getLatLng().lng.toFixed(6)}` : '' };
+      }
+      return r;
+    }
+    function napHoSo(r) {
+      for (const [k] of DIEM) { const d = r.diem[k] || {}; $id(k).value = d.toaDo || ''; $id(k + '-dc').value = d.diaChi || ''; if (d.diaChi) daTraDiaChi[k] = d.toaDo; else delete daTraDiaChi[k]; }
+      xoaMarkerTienIch();
+      for (const [k, l] of TI) {
+        const t = r.tienIch && r.tienIch[k]; $id('amenity-' + k).value = t ? t.ketQua : (k === 'bus_station' ? 'Bến xe' : l);
+        if (t && t.toaDo) { const [la, lo] = t.toaDo.split(',').map(Number); datMarker('amenity-' + k, { lat: la, lon: lo }, t.ketQua.split(':')[0]); }
+      }
+      if (r.banKinh) { currentRadiusKm = r.banKinh; $id('radius-display').innerText = r.banKinh; }
+      updateMarkers();
+    }
+    function hienHoSo(chiHien) {
+      const n = +$id('hs-so').value, r = hsDoc(n);
+      $id('hs-nhan').textContent = '#' + n;
+      $id('hs-tt').textContent = r ? `Đã lưu ${r.luc} · ${(r.diem.tsbd && (r.diem.tsbd.diaChi || r.diem.tsbd.toaDo)) || ''}` : 'Trống: bấm 💾 Lưu để ghi bảng hiện tại vào đây';
+      if (r && !chiHien) napHoSo(r);
+      nho('hs-dang-chon', String(n));
+    }
+    function dongXuat(n, r, kemTi) {
+      const o = { 'Hồ sơ': n, 'Ngày lưu': r.luc };
+      for (const [k, l] of DIEM) {
+        const d = r.diem[k] || {}, [la, lo] = (d.toaDo || '').split(',').map(x => x && x.trim());
+        o[l + ' vĩ độ'] = la || ''; o[l + ' kinh độ'] = lo || ''; o[l + ' địa chỉ'] = d.diaChi || '';
+        if (k !== 'tsbd') o[l + ' cách TSBĐ'] = d.kc || '';
+      }
+      if (kemTi) {
+        o['Bán kính tìm (km)'] = r.banKinh || '';
+        for (const [k, l] of TI) { const t = (r.tienIch || {})[k]; o[l] = t ? t.ketQua : ''; o[l + ' tọa độ'] = t ? t.toaDo : ''; }
+      }
+      return o;
+    }
+    function duLieuXuat() {
+      const kem = $id('hs-kem-ti').checked, ds = [];
+      for (let n = 1; n <= 100; n++) { const r = hsDoc(n); if (r) ds.push(dongXuat(n, r, kem)); }
+      if (!ds.length) ds.push(dongXuat(+$id('hs-so').value, chupTrangThai(), kem)); // chưa lưu hồ sơ nào: xuất bảng đang mở
+      return ds;
+    }
+    function taiFile(blob, ten) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ten; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+    const tenFile = duoi => `TSBD_TSSS_${new Date().toISOString().slice(0, 10)}.${duoi}`;
+    function xuatCsv() {
+      const ds = duLieuXuat(), cot = Object.keys(ds[0]);
+      const o = v => { v = String(v ?? ''); return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+      const csv = [cot.map(o).join(','), ...ds.map(d => cot.map(c => o(d[c])).join(','))].join('\r\n');
+      taiFile(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), tenFile('csv')); // BOM để Excel mở đúng tiếng Việt
+    }
+    function xuatExcel() {
+      if (!window.XLSX) { alert('Chưa tải xong thư viện Excel, thử lại sau vài giây hoặc dùng ⬇ CSV.'); return; }
+      const ds = duLieuXuat(), ws = XLSX.utils.json_to_sheet(ds), wb = XLSX.utils.book_new();
+      ws['!cols'] = Object.keys(ds[0]).map(c => ({ wch: /(địa chỉ|^Trường$|^Bệnh viện$|^Bến xe$|^Chợ|^Khác$)/.test(c) ? 40 : 13 }));
+      XLSX.utils.book_append_sheet(wb, ws, 'TSBĐ-TSSS'); XLSX.writeFile(wb, tenFile('xlsx'));
+    }
+    $id('hs-so').addEventListener('input', () => hienHoSo(true));
+    $id('hs-so').addEventListener('change', () => hienHoSo(false));
+    $id('hs-lui').onclick = () => { const s = $id('hs-so'); s.value = Math.max(1, +s.value - 1); hienHoSo(false); };
+    $id('hs-toi').onclick = () => { const s = $id('hs-so'); s.value = Math.min(100, +s.value + 1); hienHoSo(false); };
+    $id('hs-luu').onclick = () => {
+      const n = +$id('hs-so').value;
+      if (!$id('tsbd').value.trim()) { alert('Nhập tọa độ TSBĐ trước khi lưu.'); return; }
+      if (hsDoc(n) && !confirm(`Hồ sơ #${n} đã có dữ liệu. Ghi đè?`)) return;
+      nho(hsKhoa(n), JSON.stringify(chupTrangThai())); hienHoSo(true);
+    };
+    $id('hs-xoa').onclick = () => { const n = +$id('hs-so').value; if (hsDoc(n) && confirm(`Xoá hồ sơ #${n}?`)) { try { localStorage.removeItem(hsKhoa(n)); } catch (e) {} hienHoSo(true); } };
+    $id('hs-csv').onclick = xuatCsv; $id('hs-xlsx').onclick = xuatExcel;
+    $id('hs-so').value = nho('hs-dang-chon') || 1; hienHoSo(true);
 
     function takeScreenshot() {
       const [lat, lng] = document.getElementById('tsbd').value.split(',').map(x => x.trim());

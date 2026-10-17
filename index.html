@@ -241,41 +241,33 @@
     }
 
     // Các loại tiện ích chính
+    // Mỗi loại tiện ích = một hàm lọc trên phần tử OSM (đã tải MỘT lần cho cả bán kính).
+    const laTen = (t, re) => re.test((t.name || '') + ' ' + (t['name:vi'] || ''));
+    const KHONG_PHAI_TRUONG = /(anh ngữ|ngoại ngữ|tiếng anh|tiếng trung|language|english|trung tâm|center|lái xe)/i;
     const amenityTypes = [
-      {
-        id: 'school',
-        label: 'Trường',
-        queries: [
-          { key: 'amenity', value: 'school' },
-          { key: 'amenity', value: 'college' },
-          { key: 'amenity', value: 'university' }
-        ],
-        nameFilter: /(trường|thcs|tiểu học|thpt|cao đẳng|đại học)/i,
-        nameExclude: /(anh ngữ|ngoại ngữ|tiếng anh|tiếng trung|language|center|trung tâm)/i
-      },
-      {
-        id: 'hospital',
-        label: 'Bệnh viện',
-        queries: [{ key: 'amenity', value: 'hospital' }]
-      },
-      {
-        id: 'bus_station',
-        label: 'Bến xe',
-        queries: [{ key: 'amenity', value: 'bus_station' }],
-        nameFilter: /bến\s*xe|bus\s*station/i
-      },
-      {
-        id: 'market',
-        label: 'Chợ/Cửa hàng',
-        queries: [
-          { key: 'amenity', value: 'marketplace' },
-          { key: 'shop', value: 'convenience' },
-          { key: 'shop', value: 'supermarket' }
-        ]
-      }
+      { id: 'school', label: 'Trường', loai: [
+          { ten: 'Trường', khop: t => ['school','college','university','kindergarten'].includes(t.amenity) || t.building === 'school', boQua: t => laTen(t, KHONG_PHAI_TRUONG) }
+      ] },
+      { id: 'hospital', label: 'Bệnh viện', loai: [
+          { ten: 'Bệnh viện', khop: t => t.amenity === 'hospital' || t.healthcare === 'hospital' },
+          { ten: 'Phòng khám', khop: t => t.amenity === 'clinic' || t.healthcare === 'clinic' }
+      ] },
+      { id: 'bus_station', label: 'Bến xe', loai: [
+          { ten: 'Bến xe', khop: t => t.amenity === 'bus_station' || (t.public_transport === 'station' && t.bus === 'yes') },
+          { ten: 'Trạm xe buýt', khop: t => t.highway === 'bus_stop' || (t.public_transport === 'platform' && t.bus !== 'no') }
+      ], gopKetQua: true },
+      { id: 'market', label: 'Chợ/Cửa hàng', loai: [
+          { ten: 'Chợ', khop: t => t.amenity === 'marketplace' || laTen(t, /^chợ\s/i) },
+          { ten: 'Cửa hàng', khop: t => ['convenience','supermarket','mall','department_store'].includes(t.shop) }
+      ], gopKetQua: true }
     ];
-
-    // Bán kính hiện tại (km), mặc định 1km
+    const LOAI_KHAC = [
+      { ten: 'UBND', khop: t => t.amenity === 'townhall' || laTen(t, /(ủy ban|uỷ ban|ubnd)/i) },
+      { ten: 'Công an', khop: t => t.amenity === 'police' },
+      { ten: 'Công viên', khop: t => t.leisure === 'park' && laTen(t, /\S/) },
+      { ten: 'Sân vận động', khop: t => t.leisure === 'stadium' },
+      { ten: 'Di tích', khop: t => ['monument','memorial','castle','heritage','temple','archaeological_site'].includes(t.historic) }
+    ];
     let currentRadiusKm = 1;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -332,204 +324,95 @@
       throw loiCuoi || new Error('Overpass không phản hồi');
     }
 
-    async function findNearestByQueries(lat, lon, queries, nameFilter, nameExclude) {
-      const radius = currentRadiusKm * 1000;
-      let query = '[out:json][timeout:25];(';
-      queries.forEach(({ key, value }) => {
-        query += `node(around:${radius},${lat},${lon})[${key}=${value}];`;
-        query += `way(around:${radius},${lat},${lon})[${key}=${value}];`;
-        query += `relation(around:${radius},${lat},${lon})[${key}=${value}];`;
-      });
-      query += ');out center;';
-
-      const data = await goiOverpass(query);
-      if (!data.elements || data.elements.length === 0) return null;
-
-      let nearest = null;
-      let minDist = Infinity;
-
-      data.elements.forEach(elem => {
-        let eLat = null, eLon = null;
-
-        if (typeof elem.lat === 'number' && typeof elem.lon === 'number') {
-          eLat = elem.lat;
-          eLon = elem.lon;
-        } else if (
-          elem.center &&
-          typeof elem.center.lat === 'number' &&
-          typeof elem.center.lon === 'number'
-        ) {
-          eLat = elem.center.lat;
-          eLon = elem.center.lon;
-        } else {
-          return;
-        }
-
-        const name = (elem.tags && elem.tags.name) ? elem.tags.name : '';
-
-        if (nameFilter && !nameFilter.test(name)) return;
-        if (nameExclude && nameExclude.test(name)) return;
-
-        const d = calculateDistance(lat, lon, eLat, eLon);
-        if (d < minDist) {
-          minDist = d;
-          nearest = { lat: eLat, lon: eLon, dist: d, name };
-        }
-      });
-
-      return nearest;
-    }
-
-    async function findNearestAmenityForType(lat, lon, amenity) {
-      return findNearestByQueries(
-        lat,
-        lon,
-        amenity.queries,
-        amenity.nameFilter,
-        amenity.nameExclude
-      );
-    }
-
-    // Tìm tiện ích "Khác" theo thứ tự ưu tiên:
-    // Công viên -> Sân vận động -> UBND -> Công an -> Di tích lịch sử
-    async function searchOtherAmenity(lat, lon) {
-      const inputElem = document.getElementById('amenity-other');
-      if (!inputElem) return;
-
-      const categories = [
-        {
-          labelPrefix: 'Công viên',
-          queries: [{ key: 'leisure', value: 'park' }],
-          nameFilter: /(công viên|park)/i
-        },
-        {
-          labelPrefix: 'Sân vận động',
-          queries: [{ key: 'leisure', value: 'stadium' }],
-          nameFilter: /(sân vận động|stadium)/i
-        },
-        {
-          labelPrefix: 'Ủy ban nhân dân',
-          queries: [
-            { key: 'amenity', value: 'townhall' },
-            { key: 'office',  value: 'government' }
-          ],
-          nameFilter: /(ủy ban|uỷ ban|ubnd)/i
-        },
-        {
-          labelPrefix: 'Công an',
-          queries: [{ key: 'amenity', value: 'police' }],
-          nameFilter: /(công an|police)/i
-        },
-        {
-          labelPrefix: 'Di tích lịch sử',
-          queries: [
-            { key: 'historic', value: 'monument' },
-            { key: 'historic', value: 'memorial' },
-            { key: 'historic', value: 'castle' },
-            { key: 'historic', value: 'heritage' }
-          ]
-        }
-      ];
-
-      // Xoá marker cũ nếu có
-      if (markers['amenity-other']) {
-        map.removeLayer(markers['amenity-other']);
-        delete markers['amenity-other'];
+    // Tải MỘT lần mọi phần tử tiện ích trong bán kính (thay vì 15–20 truy vấn rời gây quá tải/lỗi).
+    let boNhoTienIch = { khoa: '', ds: [] };
+    async function taiTienIch(lat, lon) {
+      const R = Math.round(currentRadiusKm * 1000);
+      const khoa = `${lat.toFixed(5)},${lon.toFixed(5)},${R}`;
+      if (boNhoTienIch.khoa === khoa) return boNhoTienIch.ds;
+      const a = `(around:${R},${lat},${lon})`;
+      const q = `[out:json][timeout:60];(
+        nwr${a}["amenity"~"^(school|college|university|kindergarten|hospital|clinic|bus_station|marketplace|townhall|police)$"];
+        nwr${a}["healthcare"~"^(hospital|clinic)$"];
+        nwr${a}["building"="school"]["name"];
+        nwr${a}["highway"="bus_stop"];
+        nwr${a}["public_transport"~"^(platform|station)$"];
+        nwr${a}["shop"~"^(convenience|supermarket|mall|department_store)$"];
+        nwr${a}["office"="government"]["name"];
+        nwr${a}["leisure"~"^(park|stadium)$"];
+        nwr${a}["historic"~"^(monument|memorial|castle|heritage|temple|archaeological_site)$"];
+      );out center tags;`;
+      const data = await goiOverpass(q);
+      const ds = [];
+      for (const e of data.elements || []) {
+        const la = typeof e.lat === 'number' ? e.lat : e.center && e.center.lat;
+        const lo = typeof e.lon === 'number' ? e.lon : e.center && e.center.lon;
+        if (typeof la !== 'number' || typeof lo !== 'number') continue;
+        const t = e.tags || {};
+        ds.push({ lat: la, lon: lo, t, name: t['name:vi'] || t.name || '', dist: calculateDistance(lat, lon, la, lo) });
       }
-
-      for (const cat of categories) {
-        try {
-          const nearest = await findNearestByQueries(
-            lat,
-            lon,
-            cat.queries,
-            cat.nameFilter || null,
-            null
-          );
-          if (nearest) {
-            createMarker(
-              'amenity-other',
-              nearest.lat,
-              nearest.lon,
-              'Khác',
-              'pngtree-circular-world-flag-vietnam-icon-png-image_4830539.png'
-            );
-            const nameText = nearest.name && nearest.name.trim() !== '' ? nearest.name : '(không tên)';
-            inputElem.value = `Khác (${cat.labelPrefix}): ${nameText} (${nearest.dist} km)`;
-            return;
-          }
-        } catch (err) {
-          console.error('Error searching other amenity (', cat.labelPrefix, '): ', err);
-        }
+      boNhoTienIch = { khoa, ds };
+      return ds;
+    }
+    function ganNhat(ds, loai) {
+      let best = null;
+      for (const x of ds) {
+        if (!loai.khop(x.t) || (loai.boQua && loai.boQua(x.t))) continue;
+        const d = Number(x.dist);
+        if (!best || d < Number(best.dist)) best = x;
       }
-
-      inputElem.value = `Khác: Không tìm thấy trong phạm vi ${currentRadiusKm} km`;
+      return best;
+    }
+    const tenHien = x => (x.name && x.name.trim()) ? x.name : '(không tên)';
+    function xoaMarkerTienIch() {
+      [...amenityTypes.map(a => `amenity-${a.id}`), 'amenity-other'].forEach(k => {
+        if (markers[k]) { map.removeLayer(markers[k]); delete markers[k]; }
+      });
+    }
+    function datMarker(key, x, nhan) {
+      createMarker(key, x.lat, x.lon, nhan, 'pngtree-circular-world-flag-vietnam-icon-png-image_4830539.png');
     }
 
     async function searchAmenities() {
       const tsbdValue = document.getElementById('tsbd').value;
-      if (!tsbdValue) {
-        alert('Vui lòng nhập tọa độ TSBĐ trước khi kiểm tra tiện ích.');
+      if (!tsbdValue) { alert('Vui lòng nhập tọa độ TSBĐ trước khi kiểm tra tiện ích.'); return; }
+      const [lat, lon] = tsbdValue.split(',').map(Number);
+      const infoDiv = document.getElementById('amenities-info');
+      if (infoDiv) infoDiv.textContent = `Đang tìm tiện ích trong phạm vi ${currentRadiusKm} km...`;
+      xoaMarkerTienIch();
+      let ds;
+      try { ds = await taiTienIch(lat, lon); }
+      catch (err) {
+        console.error('Overpass lỗi', err);
+        [...amenityTypes.map(a => `amenity-${a.id}`), 'amenity-other'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.value = `${el.value.split(':')[0]}: Máy chủ dữ liệu bận, bấm Kiểm tra lại sau ít phút`;
+        });
+        if (infoDiv) infoDiv.textContent = 'Không tải được dữ liệu tiện ích (Overpass bận).';
         return;
       }
-      const [lat, lon] = tsbdValue.split(',').map(Number);
-
-      const infoDiv = document.getElementById('amenities-info');
-      if (infoDiv) {
-        infoDiv.textContent = `Đang tìm tiện ích trong phạm vi ${currentRadiusKm} km...`;
-      }
-
-      // Xoá marker tiện ích cũ
-      amenityTypes.forEach(amenity => {
-        const markerKey = `amenity-${amenity.id}`;
-        if (markers[markerKey]) {
-          map.removeLayer(markers[markerKey]);
-          delete markers[markerKey];
-        }
-      });
-      if (markers['amenity-other']) {
-        map.removeLayer(markers['amenity-other']);
-        delete markers['amenity-other'];
-      }
-
-      // 4 tiện ích chính
       for (const amenity of amenityTypes) {
-        try {
-          const nearest = await findNearestAmenityForType(lat, lon, amenity);
-          const inputElem = document.getElementById(`amenity-${amenity.id}`);
-
-          if (nearest) {
-            createMarker(
-              `amenity-${amenity.id}`,
-              nearest.lat,
-              nearest.lon,
-              amenity.label,
-              'pngtree-circular-world-flag-vietnam-icon-png-image_4830539.png'
-            );
-            const nameText = nearest.name && nearest.name.trim() !== '' ? nearest.name : '(không tên)';
-            if (inputElem) {
-              inputElem.value = `${amenity.label}: ${nameText} (${nearest.dist} km)`;
-            }
-          } else {
-            if (inputElem) {
-              inputElem.value = `${amenity.label}: Không tìm thấy trong phạm vi ${currentRadiusKm} km`;
-            }
-          }
-        } catch (err) {
-          console.error('Error searching amenity', amenity.id, err);
-          const inputElem = document.getElementById(`amenity-${amenity.id}`);
-          if (inputElem) {
-            inputElem.value = `${amenity.label}: Lỗi khi tìm kiếm`;
-          }
+        const el = document.getElementById(`amenity-${amenity.id}`);
+        const tim = amenity.loai.map(l => ({ l, x: ganNhat(ds, l) })).filter(o => o.x);
+        if (!tim.length) { if (el) el.value = `${amenity.label}: Không tìm thấy trong phạm vi ${currentRadiusKm} km`; continue; }
+        if (amenity.gopKetQua) {
+          // Hiện cả hai (ví dụ Chợ + Cửa hàng, Bến xe + Trạm buýt); marker ở cái gần nhất.
+          const gan = tim.slice().sort((a, b) => a.x.dist - b.x.dist)[0];
+          datMarker(`amenity-${amenity.id}`, gan.x, gan.l.ten);
+          if (el) el.value = tim.map(o => `${o.l.ten}: ${tenHien(o.x)} (${o.x.dist} km)`).join(' · ');
+        } else {
+          const o = tim[0];
+          datMarker(`amenity-${amenity.id}`, o.x, o.l.ten);
+          if (el) el.value = `${o.l.ten}: ${tenHien(o.x)} (${o.x.dist} km)`;
         }
       }
-
-      // Tiện ích "Khác"
-      await searchOtherAmenity(lat, lon);
-
-      if (infoDiv) {
-        infoDiv.textContent = `Đã kiểm tra tiện ích trong phạm vi ${currentRadiusKm} km.`;
+      const elKhac = document.getElementById('amenity-other');
+      let daCo = false;
+      for (const l of LOAI_KHAC) {
+        const x = ganNhat(ds, l);
+        if (x) { datMarker('amenity-other', x, l.ten); if (elKhac) elKhac.value = `Khác (${l.ten}): ${tenHien(x)} (${x.dist} km)`; daCo = true; break; }
       }
+      if (!daCo && elKhac) elKhac.value = `Khác: Không tìm thấy trong phạm vi ${currentRadiusKm} km`;
+      if (infoDiv) infoDiv.textContent = `Đã kiểm tra tiện ích trong phạm vi ${currentRadiusKm} km (${ds.length} điểm OSM).`;
     }
   </script>
 </body>

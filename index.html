@@ -203,7 +203,7 @@
       if (inputs.tsbd) {
         const [lat, lng] = inputs.tsbd.split(',').map(Number);
         tsbdLat = lat; tsbdLng = lng;
-        createMarker('tsbd', lat, lng, 'TSBĐ', 'Bieu-Tuong-Logo-Ngan-Hang-BIDV.png', true);
+        createMarker('tsbd', lat, lng, 'TSBĐ', 'tsbd-marker.svg', true);
         positions.push([lat, lng]);
       }
       function handleTSSS(id, label) {
@@ -302,9 +302,39 @@
     });
 
     // Hàm chung: tìm gần nhất cho 1 tập queries (node + way + relation)
+    // Gọi Overpass có dự phòng: thử lần lượt nhiều máy chủ, POST (tránh URL quá dài), thử lại khi 429/504, nghỉ giữa các lần gọi.
+    const OVERPASS_EPS = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+    ];
+    const nghi = ms => new Promise(r => setTimeout(r, ms));
+    let lanGoiCuoi = 0;
+    async function goiOverpass(query) {
+      let loiCuoi = null;
+      for (let vong = 0; vong < 2; vong++) {
+        for (const ep of OVERPASS_EPS) {
+          const cho = 1200 - (Date.now() - lanGoiCuoi);
+          if (cho > 0) await nghi(cho);
+          lanGoiCuoi = Date.now();
+          const ctl = new AbortController();
+          const hen = setTimeout(() => ctl.abort(), 30000);
+          try {
+            const r = await fetch(ep, { method: 'POST', body: new URLSearchParams({ data: query }), signal: ctl.signal });
+            clearTimeout(hen);
+            if (r.ok) { const d = await r.json(); if (d && Array.isArray(d.elements)) return d; }
+            loiCuoi = new Error('Overpass ' + r.status);
+            if (r.status === 429) await nghi(3000);
+          } catch (e) { clearTimeout(hen); loiCuoi = e; }
+        }
+      }
+      throw loiCuoi || new Error('Overpass không phản hồi');
+    }
+
     async function findNearestByQueries(lat, lon, queries, nameFilter, nameExclude) {
       const radius = currentRadiusKm * 1000;
-      let query = '[out:json];(';
+      let query = '[out:json][timeout:25];(';
       queries.forEach(({ key, value }) => {
         query += `node(around:${radius},${lat},${lon})[${key}=${value}];`;
         query += `way(around:${radius},${lat},${lon})[${key}=${value}];`;
@@ -312,9 +342,7 @@
       });
       query += ');out center;';
 
-      const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await goiOverpass(query);
       if (!data.elements || data.elements.length === 0) return null;
 
       let nearest = null;

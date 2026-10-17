@@ -27,6 +27,8 @@
       color: white;
       z-index: 1000;
       width: 380px;
+      max-height: calc(100vh - 20px);
+      overflow-y: auto;
       box-sizing: border-box;
     }
     .controls input {
@@ -48,6 +50,26 @@
       border-radius: 4px;
       cursor: pointer;
     }
+    .controls.thu-gon .than-bang { display: none; }
+    .tieu-de { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+    .tieu-de .mui { background: #f2c94c; color: #000; border-radius: 4px; padding: 0 8px; font-weight: bold; }
+    .muc.thu-gon .noi-dung { display: none; }
+    .dong { display: flex; align-items: center; gap: 8px; }
+    .dong input { flex: 1; }
+    .cong-tac { position: relative; flex: 0 0 40px; width: 40px; height: 22px; }
+    .cong-tac input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .cong-tac span { position: absolute; inset: 0; background: #9aa5a4; border-radius: 22px; cursor: pointer; transition: .2s; }
+    .cong-tac span::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+    .cong-tac input:checked + span { background: #0b6b47; box-shadow: inset 0 0 0 1px #f2c94c; }
+    .cong-tac input:checked + span::before { transform: translateX(18px); }
+    .dia-chi { margin-left: 48px; }
+    .dia-chi input { font-size: 13px; background: #e9f5f4; }
+    .controls .dia-chi button, .controls .nut-nho { margin-top: 0; padding: 5px 8px; }
+    .vn-dong { display: grid; grid-template-columns: 1fr 1fr 26px; gap: 6px; align-items: center; }
+    .vn-dong button { margin: 0; padding: 4px 0; background: #e0e0e0; }
+    .vn-kq { font-size: 13px; color: #f2c94c; margin: -2px 0 4px; }
+    .vn-kq a { color: #fff; margin-left: 6px; cursor: pointer; text-decoration: underline; }
+    .controls select { width: 100%; padding: 6px; border-radius: 4px; border: none; margin: 4px 0; }
     .label-icon { display: flex; flex-direction: column; align-items: center; }
     .label-box {
       background-color: #007d78;
@@ -78,51 +100,72 @@
   </style>
 </head>
 <body>
-  <div class="controls">
+  <div class="controls" id="bang">
+    <div class="tieu-de" data-thu="bang"><strong>Bảng TSBĐ &amp; TSSS</strong><span class="mui">▾</span></div>
+    <div class="than-bang">
     <div>
-      <strong>TSBĐ:</strong><br />
-      <input id="tsbd" value="" placeholder="Lat, Lng" />
+      <strong>TSBĐ:</strong>
+      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsbd" checked /><span></span></label><input id="tsbd" value="" placeholder="Lat, Lng" /></div>
+      <div class="dong dia-chi"><input id="tsbd-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsbd" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
     </div>
     <div>
-      <strong>TSSS1:</strong><br />
-      <input id="tsss1" value="" placeholder="Lat, Lng" />
-      <span style="margin-left: 4px; color: #f2c94c;"></span>
-      <span id="dist-tsss1" style="margin-left: 2px; color: #f2c94c; font-weight: bold;"></span>
+      <strong>TSSS1:</strong>
+      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsss1" checked /><span></span></label><input id="tsss1" value="" placeholder="Lat, Lng" /></div>
+      <div class="dong dia-chi"><input id="tsss1-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsss1" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
+      <span id="dist-tsss1" style="margin-left: 48px; color: #f2c94c; font-weight: bold;"></span>
     </div>
     <div>
-      <strong>TSSS2:</strong><br />
-      <input id="tsss2" value="" placeholder="Lat, Lng" />
-      <span style="margin-left: 4px; color: #f2c94c;"></span>
-      <span id="dist-tsss2" style="margin-left: 2px; color: #f2c94c; font-weight: bold;"></span>
+      <strong>TSSS2:</strong>
+      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsss2" checked /><span></span></label><input id="tsss2" value="" placeholder="Lat, Lng" /></div>
+      <div class="dong dia-chi"><input id="tsss2-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsss2" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
+      <span id="dist-tsss2" style="margin-left: 48px; color: #f2c94c; font-weight: bold;"></span>
     </div>
     <div>
-      <strong>TSSS3:</strong><br />
-      <input id="tsss3" value="" placeholder="Lat, Lng" />
-      <span style="margin-left: 4px; color: #f2c94c;"></span>
-      <span id="dist-tsss3" style="margin-left: 2px; color: #f2c94c; font-weight: bold;"></span>
+      <strong>TSSS3:</strong>
+      <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="tsss3" checked /><span></span></label><input id="tsss3" value="" placeholder="Lat, Lng" /></div>
+      <div class="dong dia-chi"><input id="tsss3-dc" placeholder="Địa chỉ: gõ rồi Enter để ra tọa độ" /><button type="button" class="nut-nho" data-tim="tsss3" title="Tìm tọa độ theo địa chỉ">🔍</button></div>
+      <span id="dist-tsss3" style="margin-left: 48px; color: #f2c94c; font-weight: bold;"></span>
     </div>
 
-    <div style="margin-top:8px;">
-      <strong>Tiện ích:</strong><br />
-      <input id="amenity-school" value="Trường" readonly /><br />
-      <input id="amenity-hospital" value="Bệnh viện" readonly /><br />
-      <input id="amenity-bus_station" value="Bến xe" readonly /><br />
-      <input id="amenity-market" value="Chợ/Cửa hàng" readonly /><br />
-      <input id="amenity-other" value="Khác" readonly />
+    <div class="muc" id="muc-tien-ich" style="margin-top:8px;">
+      <div class="tieu-de" data-thu="muc-tien-ich"><strong>Tiện ích:</strong><span class="mui">▾</span></div>
+      <div class="noi-dung">
+        <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="amenity-school" checked /><span></span></label><input id="amenity-school" value="Trường" readonly /></div>
+        <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="amenity-hospital" checked /><span></span></label><input id="amenity-hospital" value="Bệnh viện" readonly /></div>
+        <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="amenity-bus_station" checked /><span></span></label><input id="amenity-bus_station" value="Bến xe" readonly /></div>
+        <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="amenity-market" checked /><span></span></label><input id="amenity-market" value="Chợ/Cửa hàng" readonly /></div>
+        <div class="dong"><label class="cong-tac" title="Bật/tắt trên bản đồ"><input type="checkbox" data-marker="amenity-other" checked /><span></span></label><input id="amenity-other" value="Khác" readonly /></div>
+
+        <div style="margin-top:8px;">
+          <strong>Bán kính tìm kiếm (km):</strong><br />
+          <button id="radius-decrease" type="button">-</button>
+          <span id="radius-display">1</span> km
+          <button id="radius-increase" type="button">+</button>
+        </div>
+        <div id="amenities-info" style="margin-top: 8px; color: #f2c94c;"></div>
+      </div>
     </div>
 
-    <div style="margin-top:8px;">
-      <strong>Bán kính tìm kiếm (km):</strong><br />
-      <button id="radius-decrease" type="button">-</button>
-      <span id="radius-display">1</span> km
-      <button id="radius-increase" type="button">+</button>
+    <div class="muc thu-gon" id="muc-vn2000" style="margin-top:8px;">
+      <div class="tieu-de" data-thu="muc-vn2000"><strong>Chuyển VN-2000 → tọa độ Google:</strong><span class="mui">▸</span></div>
+      <div class="noi-dung">
+        <label style="font-size:13px">Trục tọa độ (tỉnh cấp sổ, theo ranh giới cũ):</label>
+        <select id="vn-truc"><option value="104.75">An Giang (104.75)</option><option value="107.75">Bà Rịa - Vũng Tàu (107.75)</option><option value="105">Bạc Liêu (105)</option><option value="107">Bắc Giang (107)</option><option value="106.5">Bắc Kạn (106.5)</option><option value="105.5">Bắc Ninh (105.5)</option><option value="105.75">Bến Tre (105.75)</option><option value="105.75">Bình Dương (105.75)</option><option value="108.25">Bình Định (108.25)</option><option value="106.25">Bình Phước (106.25)</option><option value="108.5">Bình Thuận (108.5)</option><option value="104.5">Cà Mau (104.5)</option><option value="105.75">Cao Bằng (105.75)</option><option value="105">Cần Thơ (105)</option><option value="107.75">Đà Nẵng (107.75)</option><option value="108.5">Đắk Lắk (108.5)</option><option value="108.5">Đắk Nông (108.5)</option><option value="103">Điện Biên (103)</option><option value="107.75">Đồng Nai (107.75)</option><option value="105">Đồng Tháp (105)</option><option value="108.5">Gia Lai (108.5)</option><option value="105.5">Hà Giang (105.5)</option><option value="105">Hà Nam (105)</option><option value="105">Hà Nội (105)</option><option value="105.5">Hà Tĩnh (105.5)</option><option value="105.5">Hải Dương (105.5)</option><option value="105.75">Hải Phòng (105.75)</option><option value="105">Hậu Giang (105)</option><option value="106">Hòa Bình (106)</option><option value="105.75" selected>Hồ Chí Minh (105.75)</option><option value="105.5">Hưng Yên (105.5)</option><option value="108.25">Khánh Hòa (108.25)</option><option value="104.5">Kiên Giang (104.5)</option><option value="107.5">Kon Tum (107.5)</option><option value="103">Lai Châu (103)</option><option value="107.75">Lâm Đồng (107.75)</option><option value="107.25">Lạng Sơn (107.25)</option><option value="104.75">Lào Cai (104.75)</option><option value="105.75">Long An (105.75)</option><option value="105.5">Nam Định (105.5)</option><option value="104.75">Nghệ An (104.75)</option><option value="105">Ninh Bình (105)</option><option value="108.25">Ninh Thuận (108.25)</option><option value="104.75">Phú Thọ (104.75)</option><option value="108.5">Phú Yên (108.5)</option><option value="106">Quảng Bình (106)</option><option value="107.75">Quảng Nam (107.75)</option><option value="108">Quảng Ngãi (108)</option><option value="107.75">Quảng Ninh (107.75)</option><option value="106.25">Quảng Trị (106.25)</option><option value="105.5">Sóc Trăng (105.5)</option><option value="104">Sơn La (104)</option><option value="105.5">Tây Ninh (105.5)</option><option value="105.5">Thái Bình (105.5)</option><option value="106.5">Thái Nguyên (106.5)</option><option value="105">Thanh Hóa (105)</option><option value="107">Thừa Thiên Huế (107)</option><option value="105.75">Tiền Giang (105.75)</option><option value="105.5">Trà Vinh (105.5)</option><option value="106">Tuyên Quang (106)</option><option value="105.5">Vĩnh Long (105.5)</option><option value="105">Vĩnh Phúc (105)</option><option value="104.75">Yên Bái (104.75)</option><option value="khac">Khác (tự nhập kinh tuyến trục)</option></select>
+        <input id="vn-truc-khac" placeholder="Kinh tuyến trục, ví dụ 105.75" style="display:none" />
+        <div class="vn-dong" style="font-size:13px;font-weight:bold"><span>Tọa độ X (Bắc)</span><span>Tọa độ Y (Đông)</span><span></span></div>
+        <div id="vn-ds"></div>
+        <div style="text-align:center">
+          <button type="button" onclick="kiemTraVn2000()">Kiểm tra</button>
+          <button type="button" onclick="themDongVn()">+ Thêm tọa độ</button>
+        </div>
+      </div>
     </div>
 
-    <div id="amenities-info" style="margin-top: 8px; color: #f2c94c;"></div>
     <div style="text-align: center">
       <button onclick="updateMarkers()">Cập nhật</button>
       <button onclick="takeScreenshot()">Chụp ảnh</button>
       <button onclick="searchAmenities()">Kiểm tra tiện ích</button>
+    </div>
     </div>
   </div>
 
@@ -188,8 +231,33 @@
         </div>
       `;
       const icon = L.divIcon({ className:'', html: iconHtml, iconAnchor:[20,50] });
-      markers[id] = L.marker([lat, lng], { icon }).addTo(map);
+      markers[id] = L.marker([lat, lng], { icon });
+      if (dangBat(id)) markers[id].addTo(map);
     }
+
+    // Công tắc bật/tắt từng điểm trên bản đồ + thu gọn bảng/mục; nhớ lựa chọn trong trình duyệt.
+    const nho = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+    function dangBat(id) {
+      const cb = document.querySelector(`input[data-marker="${id}"]`);
+      return !cb || cb.checked;
+    }
+    document.querySelectorAll('input[data-marker]').forEach(cb => {
+      const id = cb.dataset.marker;
+      if (nho('bat-' + id) === '0') cb.checked = false;
+      cb.addEventListener('change', () => {
+        nho('bat-' + id, cb.checked ? '1' : '0');
+        const m = markers[id];
+        if (!m) return;
+        if (cb.checked) m.addTo(map); else map.removeLayer(m);
+      });
+    });
+    document.querySelectorAll('[data-thu]').forEach(td => {
+      const khung = document.getElementById(td.dataset.thu);
+      const mui = td.querySelector('.mui');
+      const dat = thu => { khung.classList.toggle('thu-gon', thu); mui.textContent = thu ? '▸' : '▾'; };
+      dat(nho('thu-' + khung.id) === '1');
+      td.addEventListener('click', () => { const thu = !khung.classList.contains('thu-gon'); dat(thu); nho('thu-' + khung.id, thu ? '1' : '0'); });
+    });
 
     function updateMarkers() {
       const inputs = {
@@ -223,7 +291,177 @@
       handleTSSS('tsss2','TSSS 2');
       handleTSSS('tsss3','TSSS 3');
       if (positions.length > 0) { map.fitBounds(positions); }
+      (async () => { for (const k of ['tsbd', 'tsss1', 'tsss2', 'tsss3']) await capNhatDiaChi(k); })();
     }
+
+    // VN-2000 (múi chiếu 3°, k0 = 0,9999) sang WGS84 (tọa độ Google). Tham số 7 phép Helmert theo EPSG "VN-2000 to WGS 84 (2)",
+    // quy ước coordinate frame. X = tọa độ Bắc, Y = tọa độ Đông (cách ghi của sổ đỏ / bản vẽ Việt Nam).
+    function vn2000SangWgs84(X, Y, kinhTuyenTruc, k0 = 0.9999) {
+      const a = 6378137, f = 1 / 298.257223563, e2 = f * (2 - f), ep2 = e2 / (1 - e2), rad = Math.PI / 180;
+      // 1) Nghịch chiếu Transverse Mercator trên elipxoit WGS84 (VN-2000 dùng cùng elipxoit).
+      const M = X / k0, mu = M / (a * (1 - e2 / 4 - 3 * e2 ** 2 / 64 - 5 * e2 ** 3 / 256));
+      const e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+      const p1 = mu + (3 * e1 / 2 - 27 * e1 ** 3 / 32) * Math.sin(2 * mu) + (21 * e1 ** 2 / 16 - 55 * e1 ** 4 / 32) * Math.sin(4 * mu)
+        + (151 * e1 ** 3 / 96) * Math.sin(6 * mu) + (1097 * e1 ** 4 / 512) * Math.sin(8 * mu);
+      const C1 = ep2 * Math.cos(p1) ** 2, T1 = Math.tan(p1) ** 2, N1 = a / Math.sqrt(1 - e2 * Math.sin(p1) ** 2);
+      const R1 = a * (1 - e2) / (1 - e2 * Math.sin(p1) ** 2) ** 1.5, D = (Y - 500000) / (N1 * k0);
+      const phi = p1 - (N1 * Math.tan(p1) / R1) * (D ** 2 / 2 - (5 + 3 * T1 + 10 * C1 - 4 * C1 ** 2 - 9 * ep2) * D ** 4 / 24
+        + (61 + 90 * T1 + 298 * C1 + 45 * T1 ** 2 - 252 * ep2 - 3 * C1 ** 2) * D ** 6 / 720);
+      const lam = kinhTuyenTruc * rad + (D - (1 + 2 * T1 + C1) * D ** 3 / 6
+        + (5 - 2 * C1 + 28 * T1 - 3 * C1 ** 2 + 8 * ep2 + 24 * T1 ** 2) * D ** 5 / 120) / Math.cos(p1);
+      // 2) Sang tọa độ địa tâm, áp Helmert 7 tham số, đổi ngược về kinh vĩ độ WGS84.
+      const N = a / Math.sqrt(1 - e2 * Math.sin(phi) ** 2);
+      const x = N * Math.cos(phi) * Math.cos(lam), y = N * Math.cos(phi) * Math.sin(lam), z = N * (1 - e2) * Math.sin(phi);
+      const giay = rad / 3600, rx = -0.00928836 * giay, ry = 0.01975479 * giay, rz = -0.00427372 * giay, s = 1 + 0.252906278e-6;
+      const X2 = -191.90441429 + s * (x + rz * y - ry * z);
+      const Y2 = -39.30318279 + s * (-rz * x + y + rx * z);
+      const Z2 = -111.45032835 + s * (ry * x - rx * y + z);
+      const pp = Math.hypot(X2, Y2); let lat = Math.atan2(Z2, pp * (1 - e2));
+      for (let i = 0; i < 6; i++) { const Ni = a / Math.sqrt(1 - e2 * Math.sin(lat) ** 2); lat = Math.atan2(Z2 + e2 * Ni * Math.sin(lat), pp); }
+      return [lat / rad, Math.atan2(Y2, X2) / rad];
+    }
+
+    function themDongVn(x = '', y = '') {
+      const ds = document.getElementById('vn-ds');
+      const d = document.createElement('div');
+      d.innerHTML = `<div class="vn-dong"><input class="vn-x" inputmode="decimal" placeholder="1199748.84" value="${x}" /><input class="vn-y" inputmode="decimal" placeholder="611245.93" value="${y}" /><button type="button" title="Xoá dòng">✕</button></div><div class="vn-kq"></div>`;
+      d.querySelector('button').onclick = () => d.remove();
+      ds.appendChild(d);
+    }
+    let lopVn = L.layerGroup().addTo(map);
+    function kiemTraVn2000() {
+      const sel = document.getElementById('vn-truc').value;
+      const truc = sel === 'khac' ? Number(String(document.getElementById('vn-truc-khac').value).replace(',', '.')) : Number(sel);
+      if (!isFinite(truc) || truc < 100 || truc > 112) { alert('Kinh tuyến trục không hợp lệ (ví dụ 105.75).'); return; }
+      lopVn.clearLayers();
+      const diem = [];
+      document.querySelectorAll('#vn-ds > div').forEach((d, i) => {
+        const kq = d.querySelector('.vn-kq');
+        let X = Number(d.querySelector('.vn-x').value.replace(/\s/g, '').replace(',', '.'));
+        let Y = Number(d.querySelector('.vn-y').value.replace(/\s/g, '').replace(',', '.'));
+        if (!X || !Y) { kq.textContent = ''; return; }
+        if (X < Y) [X, Y] = [Y, X]; // nhập ngược X/Y: X (Bắc) ở Việt Nam luôn lớn hơn Y (Đông)
+        if (X < 900000 || X > 2700000 || Y < 200000 || Y > 800000) { kq.textContent = 'Tọa độ ngoài phạm vi VN-2000 của Việt Nam'; return; }
+        const [lat, lng] = vn2000SangWgs84(X, Y, truc);
+        const txt = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        kq.innerHTML = `Điểm ${i + 1}: <b>${txt}</b><a data-k="tsbd">Làm TSBĐ</a><a data-k="tsss1">TSSS1</a><a data-k="tsss2">TSSS2</a><a data-k="tsss3">TSSS3</a>`;
+        kq.querySelectorAll('a').forEach(a => a.onclick = () => { document.getElementById(a.dataset.k).value = txt; document.getElementById(a.dataset.k + '-dc').value = ''; updateMarkers(); });
+        L.circleMarker([lat, lng], { radius: 7, color: '#c0392b', weight: 2, fillColor: '#f2c94c', fillOpacity: 0.9 })
+          .bindTooltip(`VN-2000 điểm ${i + 1}`, { permanent: true, direction: 'top' }).addTo(lopVn);
+        diem.push([lat, lng]);
+      });
+      if (diem.length) map.fitBounds(diem, { maxZoom: 18, padding: [40, 40] });
+    }
+    document.getElementById('vn-truc').addEventListener('change', e => {
+      document.getElementById('vn-truc-khac').style.display = e.target.value === 'khac' ? '' : 'none';
+    });
+    for (let i = 0; i < 3; i++) themDongVn();
+
+    // Địa chỉ <-> tọa độ, miễn phí, không cần API key: Photon (komoot, dữ liệu OSM), dự phòng Nominatim.
+    // Dữ liệu OSM ở Việt Nam hầu như chưa có số nhà, nên kết quả chính xác tới tên đường + phường.
+    const VN_BBOX = '102,8,110,24';
+    const veMang = async (url, ms = 15000) => {
+      const ctl = new AbortController(); const h = setTimeout(() => ctl.abort(), ms);
+      try { const r = await fetch(url, { signal: ctl.signal }); if (!r.ok) throw new Error(r.status); return await r.json(); }
+      finally { clearTimeout(h); }
+    };
+    const laHem = n => /^(hẻm|ngõ|ngách|kiệt|hxh)\b/i.test(n || '');
+    const ghepDiaChi = (so, duong, phuong, tp) => {
+      const p = phuong ? (/^(phường|xã|đặc khu|thị trấn)/i.test(phuong) ? phuong : 'phường ' + phuong) : '';
+      return [[so, duong].filter(Boolean).join(' '), p, tp].filter(Boolean).join(', ');
+    };
+    function khoangCachDoan(lat, lon, a, b) {
+      const kx = 111320 * Math.cos(lat * Math.PI / 180), ky = 110540;
+      const ax = (a.lon - lon) * kx, ay = (a.lat - lat) * ky, bx = (b.lon - lon) * kx, by = (b.lat - lat) * ky;
+      const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+      const t = L2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / L2)) : 0;
+      return Math.hypot(ax + t * dx, ay + t * dy);
+    }
+    async function duongGanNhat(lat, lon) {
+      // Overpass trả hình học đường nên biết chính xác đường nào gần điểm nhất (ưu tiên đường chính hơn hẻm).
+      // Gọi nhanh một lần (8 giây/máy chủ, tối đa 2 máy chủ), không dùng vòng thử lại dài của phần tiện ích.
+      const q = `[out:json][timeout:8];way(around:80,${lat},${lon})[highway][name];out geom tags;`;
+      let d = null;
+      for (const ep of OVERPASS_EPS.slice(0, 2)) {
+        const ctl = new AbortController(); const h = setTimeout(() => ctl.abort(), 8000);
+        try { const r = await fetch(ep, { method: 'POST', body: new URLSearchParams({ data: q }), signal: ctl.signal }); if (r.ok) { d = await r.json(); break; } }
+        catch (e) { /* thử máy chủ kế */ } finally { clearTimeout(h); }
+      }
+      if (!d) return null;
+      let best = null;
+      for (const w of d.elements || []) {
+        const g = w.geometry || []; let m = Infinity;
+        for (let i = 1; i < g.length; i++) m = Math.min(m, khoangCachDoan(lat, lon, g[i - 1], g[i]));
+        const ten = (w.tags && (w.tags['name:vi'] || w.tags.name)) || '';
+        const diem = m + (laHem(ten) ? 40 : 0);
+        if (!best || diem < best.diem) best = { ten, diem };
+      }
+      return best && best.ten;
+    }
+    async function diaChiTuToaDo(lat, lon) {
+      let phuong = '', tp = '', duong = '', so = '';
+      try {
+        const j = await veMang(`https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}&limit=8&radius=0.15&lang=default`);
+        const fs = (j.features || []).map(f => f.properties);
+        if (fs[0]) { phuong = fs[0].district || ''; tp = fs[0].city || fs[0].state || ''; }
+        const coSo = fs.find(p => p.housenumber && p.street);
+        if (coSo) { so = coSo.housenumber; duong = coSo.street; }
+        const dg = fs.find(p => p.osm_key === 'highway' && p.name && !laHem(p.name)) || fs.find(p => p.osm_key === 'highway' && p.name);
+        if (!duong && dg) duong = dg.name;
+      } catch (e) {
+        const j = await veMang(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&accept-language=vi`);
+        const a = j.address || {};
+        so = a.house_number || ''; duong = a.road || ''; phuong = a.quarter || a.suburb || a.city_district || ''; tp = a.city || a.state || '';
+      }
+      return { so, duong, phuong, tp };
+    }
+    async function toaDoTuDiaChi(q) {
+      const tsbd = document.getElementById('tsbd').value.split(',').map(Number);
+      const [blat, blon] = tsbd.length === 2 && tsbd.every(isFinite) && tsbd[0] ? tsbd : [10.78, 106.69];
+      try {
+        const j = await veMang(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${blat}&lon=${blon}&bbox=${VN_BBOX}&limit=1&lang=default`);
+        const f = (j.features || [])[0];
+        if (f) return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], coSo: !!f.properties.housenumber };
+      } catch (e) { /* thử Nominatim */ }
+      const j = await veMang(`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=vn&limit=1&accept-language=vi&q=${encodeURIComponent(q)}`);
+      if (j[0]) return { lat: Number(j[0].lat), lon: Number(j[0].lon), coSo: j[0].addresstype === 'house' || j[0].type === 'house' };
+      return null;
+    }
+    const daTraDiaChi = {};
+    async function capNhatDiaChi(k) {
+      const v = document.getElementById(k).value.trim(), o = document.getElementById(k + '-dc');
+      if (!v) { o.value = ''; delete daTraDiaChi[k]; return; }
+      const [lat, lon] = v.split(',').map(Number);
+      if (!isFinite(lat) || !isFinite(lon) || daTraDiaChi[k] === v) return;
+      daTraDiaChi[k] = v; o.value = 'Đang tra địa chỉ...';
+      let a;
+      try { a = await diaChiTuToaDo(lat, lon); o.value = ghepDiaChi(a.so, a.duong, a.phuong, a.tp) || 'Không tìm thấy địa chỉ'; }
+      catch (e) { o.value = 'Không tra được địa chỉ (máy chủ bận)'; delete daTraDiaChi[k]; return; }
+      if (a.so) return;
+      // Tinh chỉnh tên đường bằng hình học đường thật (Overpass); bận thì giữ kết quả Photon.
+      const duong = await duongGanNhat(lat, lon).catch(() => null);
+      if (duong && duong !== a.duong && daTraDiaChi[k] === v && document.activeElement !== o) o.value = ghepDiaChi('', duong, a.phuong, a.tp);
+    }
+    async function timTheoDiaChi(k) {
+      const o = document.getElementById(k + '-dc'), q = o.value.trim();
+      if (!q) return;
+      const info = document.getElementById('amenities-info');
+      o.disabled = true;
+      try {
+        const r = await toaDoTuDiaChi(q);
+        if (!r) { alert('Không tìm thấy địa chỉ này trên OpenStreetMap.'); return; }
+        const v = `${r.lat.toFixed(6)}, ${r.lon.toFixed(6)}`;
+        document.getElementById(k).value = v; daTraDiaChi[k] = v;
+        updateMarkers();
+        if (info && !r.coSo) info.textContent = 'Lưu ý: OSM chưa có số nhà này, tọa độ đang lấy theo tên đường. Kiểm tra lại vị trí trên bản đồ.';
+      } catch (e) { alert('Máy chủ tìm địa chỉ bận, thử lại sau ít phút.'); }
+      finally { o.disabled = false; }
+    }
+    document.querySelectorAll('[data-tim]').forEach(b => b.onclick = () => timTheoDiaChi(b.dataset.tim));
+    ['tsbd', 'tsss1', 'tsss2', 'tsss3'].forEach(k => {
+      document.getElementById(k + '-dc').addEventListener('keydown', e => { if (e.key === 'Enter') timTheoDiaChi(k); });
+      document.getElementById(k).addEventListener('change', () => capNhatDiaChi(k));
+    });
 
     function takeScreenshot() {
       const [lat, lng] = document.getElementById('tsbd').value.split(',').map(x => x.trim());
